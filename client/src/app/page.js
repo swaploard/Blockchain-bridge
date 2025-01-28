@@ -23,6 +23,7 @@ export default function Home() {
   const OriginNetworkId = process.env.NEXT_PUBLIC_ORIGIN_NETWORK_ID;
   const DestinationNetworkName = process.env.NEXT_PUBLIC_DESTINATION_NETWORK_NAME;
   const originTokenAddress = process.env.NEXT_PUBLIC_ORIGIN_TOKEN_ADDRESS;
+  const bridgeWallet = process.env.NEXT_PUBLIC_BRIDGE_WALLET;
 
   const walletStore = useWalletStore();
 
@@ -161,9 +162,9 @@ export default function Home() {
               type="button"
               onClick={sendTokens}
               disabled={trxInProgress}
-              className="inline-flex items-center px-4 py-2 mt-4 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-44"
+              className="inline-flex items-center px-4 py-2 mt-4 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 "
             >
-              {trxInProgress ? `Processing...` : `Bridge to Sepolia`}
+              {trxInProgress ? `Processing...` : `Bridge to ${DestinationNetworkName}`}
             </button>
           </div>
         </form>

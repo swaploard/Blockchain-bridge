@@ -1,36 +1,31 @@
 "use client";
-/**
- * The origin page is responsible for handling the bridge from the origin network
- * to the destination network.
- *
- * It displays the user's balance of the origin token, and allows them to enter
- * an amount to bridge. It also displays a button to start the bridging process.
- *
- * When the user clicks the button, it sends a transaction to the bridge contract
- * with the specified amount. The transaction is then confirmed on the origin
- * network, and the user is redirected to the destination page.
- */
+
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import useWalletStore from "../../../store/walletStore";
 import WalletConnect from "@/components/walletConnect/index";
 import originToken from "@/artifacts/contracts/OriginToken.sol/OriginToken.json";
-
+import destinationToken from "@/artifacts/contracts/DestinationToken.sol/DestinationToken.json";
 const Destination = () => {
 
   const OriginNetworkName = process.env.NEXT_PUBLIC_ORIGIN_NETWORK_NAME;
-  const OriginNetworkId = process.env.NEXT_PUBLIC_ORIGIN_NETWORK_ID;
+  
   const DestinationNetworkName = process.env.NEXT_PUBLIC_DESTINATION_NETWORK_NAME;
+  const DestinationNetworkId = process.env.NEXT_PUBLIC_DESTINATION_NETWORK_ID;
+  
   const originTokenAddress = process.env.NEXT_PUBLIC_ORIGIN_TOKEN_ADDRESS;
+  const DestinationTokenAddress = process.env.NEXT_PUBLIC_DESTINATION_TOKEN_ADDRESS;
+ 
+   const bridgeWallet = process.env.NEXT_PUBLIC_BRIDGE_WALLET;
 
   const walletStore = useWalletStore();
-
 
   const [amount, setAmount] = useState(0);
   const [trxInProgress, setTrxInProgress] = useState(false);
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [contract, setContract] = useState(null);
+  const [Dcontract, setDcontract] = useState(null);
   const [balance, setBalance] = useState("0");
 
   useEffect(() => {
@@ -56,12 +51,19 @@ const Destination = () => {
       );
       setContract(contractInstance);
     }
+
+    if (signer && DestinationTokenAddress) {
+      const DcontractInstance = new ethers.Contract(
+        DestinationTokenAddress,
+        destinationToken.abi,
+        signer
+      );
+      setDcontract(DcontractInstance);
+    }
+
     checkBalance();
   }, [signer, originTokenAddress, walletStore.address]);
 
-  /**
-   * Checks the user's balance of the origin token
-   */
   const checkBalance = async () => {
     if (contract && walletStore.address) {
       try {
@@ -74,9 +76,7 @@ const Destination = () => {
     }
   };
 
-  /**
-   * Sends the specified amount of tokens to the bridge contract
-   */
+
   const sendTokens = async () => {
     if (!contract || !amount) {
       console.error("Contract not initialized or amount is zero");
@@ -106,9 +106,6 @@ const Destination = () => {
     }
   };
 
-  /**
-   * Handles changes to the amount input
-   */
   const handleAmount = (e) => {
     setAmount(e.target.value);
   };
@@ -125,10 +122,11 @@ const Destination = () => {
         </p>
         <div className="my-4">
           <WalletConnect
-            targetNetwork={OriginNetworkName}
-            targetNetworkId={OriginNetworkId}
+            targetNetwork={DestinationNetworkName}
+            targetNetworkId={DestinationNetworkId}
             currency={"ETH"}
             decimals={18}
+            isNewNetwork={true}
           />
         </div>
         <form className="w-96 mt-8 mx-auto">
