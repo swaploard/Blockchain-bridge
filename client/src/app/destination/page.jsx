@@ -16,7 +16,7 @@ import useWalletStore from "../../../store/walletStore";
 import WalletConnect from "@/components/walletConnect/index";
 import originToken from "@/artifacts/contracts/OriginToken.sol/OriginToken.json";
 
-const Origin = () => {
+const Destination = () => {
 
   const OriginNetworkName = process.env.NEXT_PUBLIC_ORIGIN_NETWORK_NAME;
   const OriginNetworkId = process.env.NEXT_PUBLIC_ORIGIN_NETWORK_ID;
@@ -170,4 +170,4 @@ const Origin = () => {
   );
 };
 
-export default Origin;
+export default Destination;
