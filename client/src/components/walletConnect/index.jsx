@@ -1,14 +1,28 @@
 "use client";
 
 import { Wallet } from "lucide-react";
+import { WifiIcon } from "lucide-react";
+
+import { useState, useEffect } from "react";
 import useWalletStore from "../../../store/walletStore";
 
-export default function WalletConnect() {
+export default function WalletConnect({
+  targetNetwork,
+  targetNetworkId,
+  currency,
+  decimals,
+  isNewNetwork = false,
+}) {
   const walletStore = useWalletStore();
+  const [networkOk, setNetworkOk] = useState(false);
+  const walletAddressAvailable = walletStore.address !== null;
+  
+  useEffect(() => {
+    checkNetwork();
+  }, []);
+ 
 
-  const connectWallet = async (props) => {
-    const { targetNetwork, targetNetworkId, currency, decimals, isNewNetwork } =
-      props;
+  const connectWallet = async () => {
     try {
       const wallet = await window.ethereum.request({
         method: "eth_requestAccounts",
@@ -17,9 +31,12 @@ export default function WalletConnect() {
       console.log("DApp connected to your wallet 💰", walletStore.address);
       checkNetwork();
     } catch (error) {
-      console.error("Error connecting DApp to your wallet");
-      console.error(error);
+      console.error("Error connecting DApp to your wallet:", error);
     }
+  };
+
+  const switchOrAdd = () => {
+    isNewNetwork ? addNetwork() : switchNetwork();
   };
 
   const checkNetwork = async () => {
@@ -27,24 +44,72 @@ export default function WalletConnect() {
       const currentChainId = await window.ethereum.request({
         method: "eth_chainId",
       });
-      console.log("Current network  :>> ", currentChainId);
+      console.log("Current network :>> ", currentChainId);
+      setNetworkOk(currentChainId === targetNetworkId);
+    }
+  };
 
+  const addNetwork = async () => {
+    try {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: targetNetworkId,
+            chainName: targetNetwork,
+            rpcUrls: [import.meta.env.VITE_DESTINATION_NETWORK_RPC],
+            nativeCurrency: {
+              name: currency,
+              symbol: currency,
+              decimals: decimals,
+            },
+          },
+        ],
+      });
+      checkNetwork();
+    } catch (error) {
+      console.error("Error adding network:", error);
+    }
+  };
+
+  const switchNetwork = async () => {
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: targetNetworkId }],
+      });
+      checkNetwork();
+    } catch (error) {
+      console.error("Error switching network:", error);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center p-4">
-      <h2 className="text-2xl font-bold">Connect your wallet</h2>
-      <p className="text-center text-gray-600">
-        Connect your wallet to start using the app
-      </p>
-      <button
-        type="button"
-        className="mt-4 px-4 py-2 border rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        onClick={connectWallet}
-      >
-        Connect
-      </button>
+    <div>
+      {networkOk ? (
+        <button
+          type="button"
+          disabled={walletAddressAvailable}
+          onClick={connectWallet}
+          className={`inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500 ${
+            walletStore.address === "" ? "hover:bg-indigo-600" : ""
+          }`}
+        >
+          <WifiIcon className="h-5 w-5 mr-2" />
+          <span>
+            {walletAddressAvailable
+              ? `Connected Acc ${walletStore.shortAddr}`
+              : `Connect Wallet`}
+          </span>
+        </button>
+      ) : (
+        <button
+          onClick={() => switchOrAdd()}
+          className="w-auto inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-pink-700"
+        >
+          Wrong network. Switch to {targetNetwork}
+        </button>
+      )}
     </div>
   );
 }
