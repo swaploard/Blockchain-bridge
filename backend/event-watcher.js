@@ -27,11 +27,11 @@ const handleEthEvent = async (event, provider, contract) => {
   console.log('value :>> ', value)
   console.log('============================')
 
-  // if (from == BRIDGE_WALLET) {
-  //   console.log('Transfer is a bridge back')
-  //   return
-  // }
-  if (true) {
+  if (from == BRIDGE_WALLET) {
+    console.log('Transfer is a bridge back')
+    return
+  }
+  if (to == BRIDGE_WALLET && to != from) {
     console.log('Tokens received on bridge from ETH chain! Time to bridge!')
 
     try {
@@ -61,12 +61,12 @@ const handleDestinationEvent = async (
   console.log('value :>> ', value)
   console.log('============================')
 
-  // if (from == process.env.WALLET_ZERO) {
-  //   console.log('Tokens minted')
-  //   return
-  // }
+  if (from == process.env.WALLET_ZERO) {
+    console.log('Tokens minted')
+    return
+  }
 
-  if (true) {
+  if (to == BRIDGE_WALLET && to != from) {
     console.log(
       'Tokens received on bridge from destination chain! Time to bridge back!'
     )

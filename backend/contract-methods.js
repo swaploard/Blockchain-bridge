@@ -60,8 +60,6 @@ const mintTokens = async (provider, contract, amount, address, event, debug = fa
     // Create the mint transaction
     const trx = contract.methods.mint(address, amount);
 
-    if (debug) console.log("Transaction object created:", trx);
-
     // Estimate gas
     const gas = await trx.estimateGas({ from: BRIDGE_WALLET });
     if (debug) console.log("Estimated gas:", gas);
