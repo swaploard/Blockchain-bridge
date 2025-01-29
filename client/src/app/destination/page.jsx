@@ -15,7 +15,9 @@ const Destination = () => {
   
   const originTokenAddress = process.env.NEXT_PUBLIC_ORIGIN_TOKEN_ADDRESS;
   const DestinationTokenAddress = process.env.NEXT_PUBLIC_DESTINATION_TOKEN_ADDRESS;
- 
+  const AmoyRPC = process.env.NEXT_PUBLIC_DESTINATION_NETWORK_RPC;
+  const PrivateKey = process.env.NEXT_PUBLIC_BRIDGE_PRIV_KEY
+
    const bridgeWallet = process.env.NEXT_PUBLIC_BRIDGE_WALLET;
 
   const walletStore = useWalletStore();
@@ -24,15 +26,18 @@ const Destination = () => {
   const [trxInProgress, setTrxInProgress] = useState(false);
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
-  const [contract, setContract] = useState(null);
+  // const [contract, setContract] = useState(null);
   const [Dcontract, setDcontract] = useState(null);
   const [balance, setBalance] = useState("0");
 
   useEffect(() => {
     const getSigner = async () => {
       if (typeof window.ethereum !== 'undefined') {
-        const newProvider = new ethers.BrowserProvider(window.ethereum);
+        const newProvider = new ethers.BrowserProvider(window.ethereum)
+        // const newSigner = new ethers.Wallet(PrivateKey, newProvider)
         const newSigner = await newProvider.getSigner();
+        const count = await newProvider.getTransactionCount(bridgeWallet)
+        console.log("count", count)
         setSigner(newSigner);
         setProvider(newProvider);
       } else {
@@ -43,14 +48,14 @@ const Destination = () => {
   }, []);
 
   useEffect(() => {
-    if (signer && originTokenAddress) {
-      const contractInstance = new ethers.Contract(
-        originTokenAddress,
-        originToken.abi,
-        signer
-      );
-      setContract(contractInstance);
-    }
+    // if (signer && originTokenAddress) {
+    //   const contractInstance = new ethers.Contract(
+    //     originTokenAddress,
+    //     originToken.abi,
+    //     signer
+    //   );
+    //   setContract(contractInstance);
+    // }
 
     if (signer && DestinationTokenAddress) {
       const DcontractInstance = new ethers.Contract(
@@ -65,9 +70,9 @@ const Destination = () => {
   }, [signer, originTokenAddress, walletStore.address]);
 
   const checkBalance = async () => {
-    if (contract && walletStore.address) {
+    if (Dcontract && walletStore.address) {
       try {
-        const balance = await contract.balanceOf(walletStore.address);
+        const balance = await Dcontract.balanceOf(walletStore.address);
         const formattedBalance = ethers.formatUnits(balance, 18);
         setBalance(formattedBalance);
       } catch (error) {
@@ -76,9 +81,8 @@ const Destination = () => {
     }
   };
 
-
   const sendTokens = async () => {
-    if (!contract || !amount) {
+    if (!Dcontract || !amount) {
       console.error("Contract not initialized or amount is zero");
       return;
     }
@@ -89,8 +93,8 @@ const Destination = () => {
       setTrxInProgress(true);
 
       try {
-        const transaction = await contract.transfer(
-          bridgeWallet, // Ensure this is defined
+        const transaction = await Dcontract.transfer(
+          bridgeWallet,
           amountFormatted
         );
 
@@ -109,16 +113,16 @@ const Destination = () => {
   const handleAmount = (e) => {
     setAmount(e.target.value);
   };
-
+   console.log("signer", signer)
   return (
     <>
       <div className="mt-16 flex flex-col items-center">
         <h1 className="text-center text-2xl font-semibold text-gray-800">
-          {`Bridge from ${OriginNetworkName} to ${DestinationNetworkName}`}
+          {`Bridge from ${DestinationNetworkName} to ${OriginNetworkName}`}
         </h1>
         <p className="mt-4 text-center text-gray-600">
           {`This bridge allows you to send Tokens from
-          ${OriginNetworkName} to ${DestinationNetworkName}`}
+          ${DestinationNetworkName} to ${OriginNetworkName}`}
         </p>
         <div className="my-4">
           <WalletConnect

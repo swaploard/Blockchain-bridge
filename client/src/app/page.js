@@ -18,7 +18,6 @@ import originToken from "@/artifacts/contracts/OriginToken.sol/OriginToken.json"
 
 export default function Home() {
 
-  
   const OriginNetworkName = process.env.NEXT_PUBLIC_ORIGIN_NETWORK_NAME;
   const OriginNetworkId = process.env.NEXT_PUBLIC_ORIGIN_NETWORK_ID;
   const DestinationNetworkName = process.env.NEXT_PUBLIC_DESTINATION_NETWORK_NAME;
@@ -26,7 +25,6 @@ export default function Home() {
   const bridgeWallet = process.env.NEXT_PUBLIC_BRIDGE_WALLET;
 
   const walletStore = useWalletStore();
-
 
   const [amount, setAmount] = useState(0);
   const [trxInProgress, setTrxInProgress] = useState(false);
@@ -89,10 +87,10 @@ export default function Home() {
 
     if (typeof window.ethereum !== 'undefined') {
       setTrxInProgress(true);
-
+        
       try {
         const transaction = await contract.transfer(
-          bridgeWallet, // Ensure this is defined
+          bridgeWallet, 
           amountFormatted
         );
 

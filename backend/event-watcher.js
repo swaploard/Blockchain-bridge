@@ -27,11 +27,11 @@ const handleEthEvent = async (event, provider, contract) => {
   console.log('value :>> ', value)
   console.log('============================')
 
-  if (from == BRIDGE_WALLET) {
-    console.log('Transfer is a bridge back')
-    return
-  }
-  if (to == BRIDGE_WALLET && to != from) {
+  // if (from == BRIDGE_WALLET) {
+  //   console.log('Transfer is a bridge back')
+  //   return
+  // }
+  if (true) {
     console.log('Tokens received on bridge from ETH chain! Time to bridge!')
 
     try {
@@ -61,12 +61,12 @@ const handleDestinationEvent = async (
   console.log('value :>> ', value)
   console.log('============================')
 
-  if (from == process.env.WALLET_ZERO) {
-    console.log('Tokens minted')
-    return
-  }
+  // if (from == process.env.WALLET_ZERO) {
+  //   console.log('Tokens minted')
+  //   return
+  // }
 
-  if (to == BRIDGE_WALLET && to != from) {
+  if (true) {
     console.log(
       'Tokens received on bridge from destination chain! Time to bridge back!'
     )
@@ -130,7 +130,6 @@ const main = async () => {
       QCHSD_ABIJSON.abi,
       DESTINATION_TOKEN_CONTRACT_ADDRESS
     )
-
   let options = {
     // filter: {
     //   value: ['1000', '1337'], //Only get events where transfer value was 1000 or 1337
@@ -142,7 +141,7 @@ const main = async () => {
   originTokenContract.events
     .Transfer(options)
     .on('data', async (event) => {
-      console.log('eventnonce :>> ', event)
+      console.log('originTokenContract-------------------------------------------------- :>> ')
       await handleEthEvent(
         event,
         destinationWebSockerProvider,
@@ -157,6 +156,7 @@ const main = async () => {
   destinationTokenContract.events
     .Transfer(options)
     .on('data', async (event) => {
+      console.log("destinationTokenContract----------------------------------------------------------")
       await handleDestinationEvent(
         event,
         originWebSockerProvider,

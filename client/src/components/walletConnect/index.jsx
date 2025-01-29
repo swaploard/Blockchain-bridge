@@ -27,7 +27,8 @@ export default function WalletConnect({
       const wallet = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
-      walletStore.setAddress(wallet[0]);
+      console.log("wallet", wallet)
+      walletStore.setAddress({address: wallet[0], network: targetNetwork});
       console.log("DApp connected to your wallet 💰", walletStore.address);
       checkNetwork();
     } catch (error) {
@@ -57,7 +58,7 @@ export default function WalletConnect({
           {
             chainId: targetNetworkId,
             chainName: targetNetwork,
-            rpcUrls: [import.meta.env.VITE_DESTINATION_NETWORK_RPC],
+            rpcUrls: [process.env.NEXT_PUBLIC_DESTINATION_NETWORK_RPC],
             nativeCurrency: {
               name: currency,
               symbol: currency,
