@@ -4,21 +4,20 @@ import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import useWalletStore from "../../../store/walletStore";
 import WalletConnect from "@/components/walletConnect/index";
-import originToken from "@/artifacts/contracts/OriginToken.sol/OriginToken.json";
-import destinationToken from "@/artifacts/contracts/DestinationToken.sol/DestinationToken.json";
+import originToken from "../../../utils/contracts/OriginToken.json";
+import destinationToken from "../../../utils/contracts/DestinationToken.json";
 const Destination = () => {
 
   const OriginNetworkName = process.env.NEXT_PUBLIC_ORIGIN_NETWORK_NAME;
-  
   const DestinationNetworkName = process.env.NEXT_PUBLIC_DESTINATION_NETWORK_NAME;
   const DestinationNetworkId = process.env.NEXT_PUBLIC_DESTINATION_NETWORK_ID;
   
   const originTokenAddress = process.env.NEXT_PUBLIC_ORIGIN_TOKEN_ADDRESS;
-  const DestinationTokenAddress = process.env.NEXT_PUBLIC_DESTINATION_TOKEN_ADDRESS;
+  const DestinationTokenAddress = process.env.NEXT_PUBLIC_DESTINATION_CONTRACT_ADDRESS;
   const AmoyRPC = process.env.NEXT_PUBLIC_DESTINATION_NETWORK_RPC;
   const PrivateKey = process.env.NEXT_PUBLIC_BRIDGE_PRIV_KEY
 
-   const bridgeWallet = process.env.NEXT_PUBLIC_BRIDGE_WALLET;
+   const bridgeWallet = process.env.NEXT_PUBLIC_BRIDGE_WALLET_ADDRESS;
 
   const walletStore = useWalletStore();
 
@@ -32,12 +31,10 @@ const Destination = () => {
 
   useEffect(() => {
     const getSigner = async () => {
+      console.log("Getting signer...", typeof window.ethereum !== 'undefined');
       if (typeof window.ethereum !== 'undefined') {
-        const newProvider = new ethers.BrowserProvider(window.ethereum)
-        // const newSigner = new ethers.Wallet(PrivateKey, newProvider)
+        const newProvider = new ethers.BrowserProvider(window.ethereum);
         const newSigner = await newProvider.getSigner();
-        const count = await newProvider.getTransactionCount(bridgeWallet)
-        console.log("count", count)
         setSigner(newSigner);
         setProvider(newProvider);
       } else {
@@ -46,7 +43,7 @@ const Destination = () => {
     };
     getSigner();
   }, []);
-
+ 
   useEffect(() => {
     // if (signer && originTokenAddress) {
     //   const contractInstance = new ethers.Contract(
@@ -56,7 +53,8 @@ const Destination = () => {
     //   );
     //   setContract(contractInstance);
     // }
-
+    console.log("Signer:", signer);
+    console.log("DestinationTokenAddress:", DestinationTokenAddress);
     if (signer && DestinationTokenAddress) {
       const DcontractInstance = new ethers.Contract(
         DestinationTokenAddress,
@@ -65,9 +63,9 @@ const Destination = () => {
       );
       setDcontract(DcontractInstance);
     }
-
     checkBalance();
   }, [signer, originTokenAddress, walletStore.address]);
+  console.log("Checking balance...", Dcontract, walletStore.address);
 
   const checkBalance = async () => {
     if (Dcontract && walletStore.address) {
@@ -93,6 +91,7 @@ const Destination = () => {
       setTrxInProgress(true);
 
       try {
+        console.log("Sending tokens...", bridgeWallet, amountFormatted);
         const transaction = await Dcontract.transfer(
           bridgeWallet,
           amountFormatted
@@ -113,7 +112,7 @@ const Destination = () => {
   const handleAmount = (e) => {
     setAmount(e.target.value);
   };
-   console.log("signer", signer)
+  console.log("",DestinationNetworkId, )
   return (
     <>
       <div className="mt-16 flex flex-col items-center">
@@ -128,9 +127,12 @@ const Destination = () => {
           <WalletConnect
             targetNetwork={DestinationNetworkName}
             targetNetworkId={DestinationNetworkId}
-            currency={"ETH"}
+            currency={"POL"}
             decimals={18}
             isNewNetwork={true}
+            rpcUrl={AmoyRPC}
+            chainId={DestinationNetworkId}
+            blockExplorerUrl={process.env.NEXT_PUBLIC_DESTINATION_EXPLORER_URL}
           />
         </div>
         <form className="w-96 mt-8 mx-auto">

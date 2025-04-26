@@ -15,6 +15,7 @@ export default function WalletConnect({
 }) {
   const walletStore = useWalletStore();
   const [networkOk, setNetworkOk] = useState(false);
+  console.log("networkOk", networkOk)
   const walletAddressAvailable = walletStore.address !== null;
   
   useEffect(() => {
@@ -27,7 +28,6 @@ export default function WalletConnect({
       const wallet = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
-      console.log("wallet", wallet)
       walletStore.setAddress({address: wallet[0], network: targetNetwork});
       console.log("DApp connected to your wallet 💰", walletStore.address);
       checkNetwork();
@@ -57,8 +57,11 @@ export default function WalletConnect({
         params: [
           {
             chainId: targetNetworkId,
-            chainName: targetNetwork,
+            chainName: "Polygon Amoy Testnet",
             rpcUrls: [process.env.NEXT_PUBLIC_DESTINATION_NETWORK_RPC],
+            blockExplorerUrls: [
+              process.env.NEXT_PUBLIC_DESTINATION_EXPLORER_URL,
+            ],
             nativeCurrency: {
               name: currency,
               symbol: currency,
@@ -69,6 +72,7 @@ export default function WalletConnect({
       });
       checkNetwork();
     } catch (error) {
+      window.location.reload();
       console.error("Error adding network:", error);
     }
   };

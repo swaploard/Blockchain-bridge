@@ -1,6 +1,4 @@
-const Web3 = require('web3')
-
-//load env file
+const ethers = require('ethers')
 require('dotenv').config()
 
 const {
@@ -15,10 +13,10 @@ const DESTINATION_TOKEN_CONTRACT_ADDRESS =
   process.env.DESTINATION_TOKEN_CONTRACT_ADDRESS
 const BRIDGE_WALLET = process.env.BRIDGE_WALLET
 
-const BRIDGE_WALLET_KEY = process.env.BRIDGE_PRIV_KEY
+const BRIDGE_PRIV_KEY = process.env.BRIDGE_PRIV_KEY
 
-const CHSD_ABIJSON = require('./OriginToken.json')
-const QCHSD_ABIJSON = require('./DestinationToken.json')
+const ORIGIN_TOKEN_CONTRACT_ABI = require('./OriginToken.json')
+const DESTINATION_TOKEN_CONTRACT_ABI = require('./DestinationToken.json')
 
 const handleEthEvent = async (event, provider, contract) => {
   const { from, to, value } = event.returnValues
@@ -26,7 +24,8 @@ const handleEthEvent = async (event, provider, contract) => {
   console.log('from :>> ', from)
   console.log('value :>> ', value)
   console.log('============================')
-
+  console.log("handleEthEvent Contract:", !!contract);
+  console.log("Is Contract Instance:", contract instanceof ethers.Contract);
   if (from == BRIDGE_WALLET) {
     console.log('Transfer is a bridge back')
     return
@@ -106,72 +105,69 @@ const handleDestinationEvent = async (
 }
 
 const main = async () => {
-  const originWebSockerProvider = new Web3(process.env.ORIGIN_WSS_ENDPOINT)
-  const destinationWebSockerProvider = new Web3(
-    process.env.DESTINATION_WSS_ENDPOINT
-  )
-  // adds account to sign transactions
-  originWebSockerProvider.eth.accounts.wallet.add(BRIDGE_WALLET_KEY)
-  destinationWebSockerProvider.eth.accounts.wallet.add(BRIDGE_WALLET_KEY)
+  console.log('Connecting to providers...')
+  console.log('ORIGIN_WSS_ENDPOINT :>> ', process.env.ORIGIN_WSS_ENDPOINT)
+  console.log('DESTINATION_HTTPS_ENDPOINT :>> ', process.env.DESTINATION_HTTPS_ENDPOINT)
+  console.log('ORIGIN_TOKEN_CONTRACT_ADDRESS :>> ', ORIGIN_TOKEN_CONTRACT_ADDRESS)
 
-  const oriNetworkId = await originWebSockerProvider.eth.net.getId()
-  const destNetworkId = await destinationWebSockerProvider.eth.net.getId()
+  // Replace JsonRpcProvider with WebSocketProvider for WebSocket connections
+  const originProvider = new ethers.WebSocketProvider(process.env.ORIGIN_WSS_ENDPOINT);
+  const destinationProvider = new ethers.JsonRpcProvider(process.env.DESTINATION_HTTPS_ENDPOINT);
+
+  // Create wallet instances for signing transactions
+  const originWallet = new ethers.Wallet(BRIDGE_PRIV_KEY, originProvider)
+  const destinationWallet = new ethers.Wallet(BRIDGE_PRIV_KEY, destinationProvider)
+
+  const oriNetworkId = await originProvider.getNetwork().then(network => network.chainId)
+  const destNetworkId = await destinationProvider.getNetwork().then(network => network.chainId)
 
   console.log('oriNetworkId :>> ', oriNetworkId)
   console.log('destNetworkId :>> ', destNetworkId)
 
-  const originTokenContract = new originWebSockerProvider.eth.Contract(
-    CHSD_ABIJSON.abi,
-    ORIGIN_TOKEN_CONTRACT_ADDRESS
+  console.log("Origin ABI is array?", Array.isArray(ORIGIN_TOKEN_CONTRACT_ABI.abi));
+  console.log("Destination ABI is array?", Array.isArray(DESTINATION_TOKEN_CONTRACT_ABI.abi));
+
+  // Check mint function existence
+  const hasMintFunction = DESTINATION_TOKEN_CONTRACT_ABI.abi.some(
+    item => item.type === "function" && item.name === "mint"
+  );
+  console.log("Destination contract has mint function?", hasMintFunction);
+  // Initialize contracts with ethers
+  const originTokenContract = new ethers.Contract(
+    ORIGIN_TOKEN_CONTRACT_ADDRESS,
+    ORIGIN_TOKEN_CONTRACT_ABI.abi,
+    originWallet
   )
 
-  const destinationTokenContract =
-    new destinationWebSockerProvider.eth.Contract(
-      QCHSD_ABIJSON.abi,
-      DESTINATION_TOKEN_CONTRACT_ADDRESS
+  const destinationTokenContract = new ethers.Contract(
+    DESTINATION_TOKEN_CONTRACT_ADDRESS,
+    DESTINATION_TOKEN_CONTRACT_ABI.abi,
+    destinationWallet
+  )
+  console.log("Destination Contract Instance:", !!destinationTokenContract.mint);
+  // Set up event listeners using ethers
+  originTokenContract.on('Transfer', async (from, to, value, event) => {
+    console.log('originTokenContract-------------------------------------------------- :>> ')
+    await handleEthEvent(
+      { returnValues: { from, to, value } },
+      destinationProvider,
+      destinationTokenContract
     )
-  let options = {
-    // filter: {
-    //   value: ['1000', '1337'], //Only get events where transfer value was 1000 or 1337
-    // },
-    // fromBlock: 'latest', //Number || "earliest" || "pending" || "latest"
-    // toBlock: 'latest',
-  }
+  })
 
-  originTokenContract.events
-    .Transfer(options)
-    .on('data', async (event) => {
-      console.log('originTokenContract-------------------------------------------------- :>> ')
-      await handleEthEvent(
-        event,
-        destinationWebSockerProvider,
-        destinationTokenContract
-      )
-    })
-    .on('error', (err) => {
-      console.error('Error: ', err)
-    })
+  destinationTokenContract.on('Transfer', async (from, to, value, event) => {
+    console.log("destinationTokenContract----------------------------------------------------------")
+    await handleDestinationEvent(
+      { returnValues: { from, to, value } },
+      originProvider,
+      originTokenContract,
+      destinationProvider,
+      destinationTokenContract
+    )
+  })
+
   console.log(`Waiting for Transfer events on ${ORIGIN_TOKEN_CONTRACT_ADDRESS}`)
-
-  destinationTokenContract.events
-    .Transfer(options)
-    .on('data', async (event) => {
-      console.log("destinationTokenContract----------------------------------------------------------")
-      await handleDestinationEvent(
-        event,
-        originWebSockerProvider,
-        originTokenContract,
-        destinationWebSockerProvider,
-        destinationTokenContract
-      )
-    })
-    .on('error', (err) => {
-      console.error('Error: ', err)
-    })
-
-  console.log(
-    `Waiting for Transfer events on ${DESTINATION_TOKEN_CONTRACT_ADDRESS}`
-  )
+  console.log(`Waiting for Transfer events on ${DESTINATION_TOKEN_CONTRACT_ADDRESS}`)
 }
 
 main()

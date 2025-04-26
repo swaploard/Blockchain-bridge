@@ -1,28 +1,18 @@
 "use client";
-/**
- * The origin page is responsible for handling the bridge from the origin network
- * to the destination network.
- *
- * It displays the user's balance of the origin token, and allows them to enter
- * an amount to bridge. It also displays a button to start the bridging process.
- *
- * When the user clicks the button, it sends a transaction to the bridge contract
- * with the specified amount. The transaction is then confirmed on the origin
- * network, and the user is redirected to the destination page.
- */
+
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import useWalletStore from "../../store/walletStore";
 import WalletConnect from "@/components/walletConnect/index";
-import originToken from "@/artifacts/contracts/OriginToken.sol/OriginToken.json";
+import originToken from "../../utils/contracts/OriginToken.json";
 
 export default function Home() {
 
   const OriginNetworkName = process.env.NEXT_PUBLIC_ORIGIN_NETWORK_NAME;
   const OriginNetworkId = process.env.NEXT_PUBLIC_ORIGIN_NETWORK_ID;
   const DestinationNetworkName = process.env.NEXT_PUBLIC_DESTINATION_NETWORK_NAME;
-  const originTokenAddress = process.env.NEXT_PUBLIC_ORIGIN_TOKEN_ADDRESS;
-  const bridgeWallet = process.env.NEXT_PUBLIC_BRIDGE_WALLET;
+  const originTokenAddress = process.env.NEXT_PUBLIC_ORIGIN_CONTRACT_ADDRESS;
+  const bridgeWallet = process.env.NEXT_PUBLIC_BRIDGE_WALLET_ADDRESS;
 
   const walletStore = useWalletStore();
 
@@ -54,14 +44,12 @@ export default function Home() {
         originToken.abi,
         signer
       );
+
       setContract(contractInstance);
     }
     checkBalance();
   }, [signer, originTokenAddress, walletStore.address]);
 
-  /**
-   * Checks the user's balance of the origin token
-   */
   const checkBalance = async () => {
     if (contract && walletStore.address) {
       try {
@@ -74,9 +62,6 @@ export default function Home() {
     }
   };
 
-  /**
-   * Sends the specified amount of tokens to the bridge contract
-   */
   const sendTokens = async () => {
     if (!contract || !amount) {
       console.error("Contract not initialized or amount is zero");
@@ -87,16 +72,13 @@ export default function Home() {
 
     if (typeof window.ethereum !== 'undefined') {
       setTrxInProgress(true);
-        
+        console.log("transaction", amountFormatted, bridgeWallet)
       try {
         const transaction = await contract.transfer(
           bridgeWallet, 
           amountFormatted
         );
-
-        console.log("Transaction:", transaction);
         await transaction.wait();
-        console.log("Transaction confirmed");
         setAmount(0);
         setTrxInProgress(false);
       } catch (error) {
@@ -106,14 +88,9 @@ export default function Home() {
     }
   };
 
-  /**
-   * Handles changes to the amount input
-   */
   const handleAmount = (e) => {
     setAmount(e.target.value);
   };
-
-
   return (
     <>
       <div className="mt-16 flex flex-col items-center">
